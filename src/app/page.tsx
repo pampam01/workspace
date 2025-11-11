@@ -15,20 +15,31 @@ import {
   Users,
   Briefcase,
   Star,
-  Palette, // Ikon untuk 'batik' atau default
-  Scissors, // Ikon untuk 'fashion'
-  Camera, // Ikon untuk 'fotografi'
-  Music, // Ikon untuk 'musik'
-  Brush, // Ikon untuk 'desain'
-  Hammer, // Ikon untuk 'keramik'
-  Code, // Ikon untuk 'coding'
-  ShoppingBag, // Ikon untuk 'kerajinan'
+  Palette,
+  Scissors,
+  Camera,
+  Music,
+  Brush,
+  Hammer,
+  Code,
+  ShoppingBag,
   ArrowRight,
   CheckCircle,
   TrendingUp,
   Shield,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+
+const categories = [
+  { name: "Batik", icon: Palette, count: 156 },
+  { name: "Keramik", icon: Hammer, count: 89 },
+  { name: "Fashion", icon: Scissors, count: 234 },
+  { name: "Desain", icon: Brush, count: 312 },
+  { name: "Fotografi", icon: Camera, count: 178 },
+  { name: "Musik", icon: Music, count: 145 },
+  { name: "Coding", icon: Code, count: 267 },
+  { name: "Kerajinan", icon: ShoppingBag, count: 198 },
+];
+
 const features = [
   {
     title: "Seniman Terverifikasi",
@@ -63,49 +74,10 @@ const stats = [
   { label: "Total Transaksi", value: "Rp 2.5M+" },
 ];
 
-// --- TAMBAHAN: Pemetaan Kategori ke Ikon ---
-// Kita buat "kamus" di sini. Nama properti (misal: 'desain')
-// harus cocok (case-insensitive) dengan data dari database Anda.
-const categoryIconMap: { [key: string]: React.ElementType } = {
-  desain: Brush,
-  batik: Palette,
-  keramik: Hammer,
-  fashion: Scissors,
-  fotografi: Camera,
-  musik: Music,
-  coding: Code,
-  kerajinan: ShoppingBag,
-  default: Palette,
-};
-
 export default function Home() {
-  const [categories, setCategories] = useState<{ kategori: string }[] | null>();
-
-  useEffect(() => {
-    const getCategories = async () => {
-      try {
-        const categoriesResponse = await fetch("/api/categories", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        if (!categoriesResponse.ok) {
-          throw new Error("cannot fetch categories");
-        }
-
-        const data = await categoriesResponse.json();
-        setCategories(data.data);
-      } catch (error) {
-        console.error("something went Wrong", error);
-      }
-    };
-    getCategories();
-  }, []);
-
   return (
     <div className="min-h-screen bg-linear-to-b from-white to-gray-50">
-      {/* ... (Navigasi, Hero, Stats, Features tetap sama) ... */}
+      {/* Navigation */}
       <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -253,30 +225,29 @@ export default function Home() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories?.map((category, index) => {
-              const categoryName = category.kategori.toLowerCase();
-
-              const IconComponent =
-                categoryIconMap[categoryName] || categoryIconMap.default;
-
-              return (
-                <Link key={index} href={`/kategori/${category.kategori}`}>
-                  <Card className="hover:shadow-lg transition-all hover:scale-105 cursor-pointer group">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-linear-to-r from-purple-100 to-pink-100 rounded-lg flex items-center justify-center group-hover:from-purple-200 group-hover:to-pink-200 transition">
-                          <IconComponent className="h-6 w-6 text-purple-600" />
-                        </div>
+            {categories.map((category, index) => (
+              <Link
+                key={index}
+                href={`/kategori/${category.name.toLowerCase()}`}
+              >
+                <Card className="hover:shadow-lg transition-all hover:scale-105 cursor-pointer group">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-linear-to-r from-purple-100 to-pink-100 rounded-lg flex items-center justify-center group-hover:from-purple-200 group-hover:to-pink-200 transition">
+                        <category.icon className="h-6 w-6 text-purple-600" />
                       </div>
-                      <h3 className="font-semibold text-gray-900">
-                        {category.kategori.charAt(0).toUpperCase() +
-                          category.kategori.slice(1)}
-                      </h3>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
+                      <Badge variant="secondary">{category.count}</Badge>
+                    </div>
+                    <h3 className="font-semibold text-gray-900">
+                      {category.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {category.count} seniman tersedia
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
