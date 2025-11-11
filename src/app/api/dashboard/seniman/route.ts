@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
     const profile = user.seniman_profile;
 
-    // Calculate stats
+    // Stats
     const totalProjects = await db.project.count({
       where: { seniman_id: profile.id },
     });
@@ -114,7 +114,6 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Calculate earnings from completed transactions
     const transactions = await db.transaction.findMany({
       where: {
         seniman_id: profile.id,
@@ -127,7 +126,6 @@ export async function GET(request: NextRequest) {
       0
     );
 
-    // Monthly earnings (current month)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthlyTransactions = transactions.filter(
@@ -138,7 +136,6 @@ export async function GET(request: NextRequest) {
       0
     );
 
-    // Get unread notifications count
     const unreadNotifications = await db.notification.count({
       where: {
         user_id: user.id,
@@ -146,14 +143,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get recent notifications
     const notifications = await db.notification.findMany({
       where: { user_id: user.id },
       orderBy: { created_at: "desc" },
       take: 10,
     });
 
-    // Format recent projects
+    // 🧩 Format projects
     const recentProjects = profile.projects.map((project) => ({
       id: project.id,
       title: project.title,
@@ -174,20 +170,42 @@ export async function GET(request: NextRequest) {
       client_avatar: project.klien.user.profile_picture_url || null,
     }));
 
-    // Format portfolio items
-    const portfolio = profile.portfolio_items.map((item) => ({
-      id: item.id,
-      title: item.title,
-      category: item.category || "",
-      image_url: item.image_urls
-        ? JSON.parse(item.image_urls)[0] || "/placeholder.jpg"
-        : "/placeholder.jpg",
-      views: 0, // TODO: Add view tracking
-      likes: 0, // TODO: Add likes system
-      is_featured: item.is_featured,
-    }));
+    // 🧩 FIX: image_urls error-safe parser
+    const portfolio = profile.portfolio_items.map((item) => {
+      let imageUrl = "/placeholder.jpg";
 
-    // Format notifications
+      if (item.image_urls) {
+        try {
+          if (typeof item.image_urls === "string") {
+            if (item.image_urls.trim().startsWith("[")) {
+              const parsed = JSON.parse(item.image_urls);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                imageUrl = parsed[0];
+              }
+            } else {
+              // langsung URL tunggal
+              imageUrl = item.image_urls;
+            }
+          } else if (Array.isArray(item.image_urls)) {
+            imageUrl = item.image_urls[0] || "/placeholder.jpg";
+          }
+        } catch {
+          imageUrl = "/placeholder.jpg";
+        }
+      }
+
+      return {
+        id: item.id,
+        title: item.title,
+        category: item.category || "",
+        image_url: imageUrl,
+        views: 0,
+        likes: 0,
+        is_featured: item.is_featured,
+      };
+    });
+
+    // 🧩 Format notifikasi
     const formattedNotifications = notifications.map((notif) => ({
       id: notif.id,
       type: notif.type,
@@ -216,8 +234,8 @@ export async function GET(request: NextRequest) {
         monthly_earnings: monthlyEarnings,
         average_rating: Number(profile.rating_average) || 0,
         total_reviews: profile.total_reviews || 0,
-        profile_views: 0, // TODO: Add view tracking
-        response_rate: 98, // TODO: Calculate from messages
+        profile_views: 0,
+        response_rate: 98,
         response_time: profile.response_time_hours || 0,
       },
       recentProjects,
@@ -247,30 +265,15 @@ function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (diffInSeconds < 60) {
-    return "Baru saja";
-  }
-
+  if (diffInSeconds < 60) return "Baru saja";
   const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} menit yang lalu`;
-  }
-
+  if (diffInMinutes < 60) return `${diffInMinutes} menit yang lalu`;
   const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} jam yang lalu`;
-  }
-
+  if (diffInHours < 24) return `${diffInHours} jam yang lalu`;
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 7) {
-    return `${diffInDays} hari yang lalu`;
-  }
-
+  if (diffInDays < 7) return `${diffInDays} hari yang lalu`;
   const diffInWeeks = Math.floor(diffInDays / 7);
-  if (diffInWeeks < 4) {
-    return `${diffInWeeks} minggu yang lalu`;
-  }
-
+  if (diffInWeeks < 4) return `${diffInWeeks} minggu yang lalu`;
   const diffInMonths = Math.floor(diffInDays / 30);
   return `${diffInMonths} bulan yang lalu`;
 }

@@ -1,22 +1,34 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  ArrowLeft, 
-  Save, 
-  Upload, 
-  X, 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ArrowLeft,
+  Save,
+  Upload,
+  X,
   Plus,
   Calendar,
   DollarSign,
@@ -27,188 +39,217 @@ import {
   Users,
   Target,
   FileText,
-  Image as ImageIcon
-} from 'lucide-react'
+  Image as ImageIcon,
+} from "lucide-react";
 
 const categories = [
-  'Batik',
-  'Keramik',
-  'Fashion',
-  'Desain',
-  'Fotografi',
-  'Musik',
-  'Coding',
-  'Kerajinan'
-]
+  "Batik",
+  "Keramik",
+  "Fashion",
+  "Desain",
+  "Fotografi",
+  "Musik",
+  "Coding",
+  "Kerajinan",
+];
 
 const skills = [
-  'Adobe Photoshop', 'Adobe Illustrator', 'CorelDRAW', 'Sketch', 'Figma',
-  'React', 'Vue.js', 'Angular', 'Node.js', 'Python', 'Java',
-  'Photography', 'Videography', 'Video Editing', 'Motion Graphics',
-  'Batik Tulis', 'Batik Cap', 'Natural Dyes', 'Weaving',
-  'Ceramic Art', 'Pottery', 'Sculpture', 'Wood Carving',
-  'Fashion Design', 'Pattern Making', 'Sewing', 'Embroidery',
-  'Music Production', 'Sound Engineering', 'Composition', 'Arrangement'
-]
+  "Adobe Photoshop",
+  "Adobe Illustrator",
+  "CorelDRAW",
+  "Sketch",
+  "Figma",
+  "React",
+  "Vue.js",
+  "Angular",
+  "Node.js",
+  "Python",
+  "Java",
+  "Photography",
+  "Videography",
+  "Video Editing",
+  "Motion Graphics",
+  "Batik Tulis",
+  "Batik Cap",
+  "Natural Dyes",
+  "Weaving",
+  "Ceramic Art",
+  "Pottery",
+  "Sculpture",
+  "Wood Carving",
+  "Fashion Design",
+  "Pattern Making",
+  "Sewing",
+  "Embroidery",
+  "Music Production",
+  "Sound Engineering",
+  "Composition",
+  "Arrangement",
+];
 
 export default function NewProjectPage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('basic')
-  const [errors, setErrors] = useState<string[]>([])
-  const [success, setSuccess] = useState(false)
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic");
+  const [errors, setErrors] = useState<string[]>([]);
+  const [success, setSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
     // Basic Info
-    title: '',
-    description: '',
-    category: '',
-    budgetType: 'FIXED',
-    budget: '',
-    budgetMin: '',
-    budgetMax: '',
-    hourlyRate: '',
-    
+    title: "",
+    description: "",
+    category: "",
+    budgetType: "FIXED",
+    budget: "",
+    budgetMin: "",
+    budgetMax: "",
+    hourlyRate: "",
+
     // Timeline
-    startDate: '',
-    deadline: '',
-    estimatedDuration: '',
-    
+    startDate: "",
+    deadline: "",
+    estimatedDuration: "",
+
     // Requirements
     requiredSkills: [] as string[],
     attachments: [] as File[],
-    clientNotes: '',
-    
+    clientNotes: "",
+
     // Hiring Options
-    hiringType: 'OPEN' // OPEN or DIRECT
-  })
+    hiringType: "OPEN", // OPEN or DIRECT
+  });
 
-  const [skillInput, setSkillInput] = useState('')
+  const [skillInput, setSkillInput] = useState("");
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }))
-  }
+      [name]: value,
+    }));
+  };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }))
-  }
+      [name]: value,
+    }));
+  };
 
   const addSkill = (skill: string) => {
     if (skill && !formData.requiredSkills.includes(skill)) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        requiredSkills: [...prev.requiredSkills, skill]
-      }))
+        requiredSkills: [...prev.requiredSkills, skill],
+      }));
     }
-    setSkillInput('')
-  }
+    setSkillInput("");
+  };
 
   const removeSkill = (skillToRemove: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      requiredSkills: prev.requiredSkills.filter(skill => skill !== skillToRemove)
-    }))
-  }
+      requiredSkills: prev.requiredSkills.filter(
+        (skill) => skill !== skillToRemove
+      ),
+    }));
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    setFormData(prev => ({
+    const files = Array.from(e.target.files || []);
+    setFormData((prev) => ({
       ...prev,
-      attachments: [...prev.attachments, ...files]
-    }))
-  }
+      attachments: [...prev.attachments, ...files],
+    }));
+  };
 
   const removeFile = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index)
-    }))
-  }
+      attachments: prev.attachments.filter((_, i) => i !== index),
+    }));
+  };
 
   const validateForm = () => {
-    const newErrors: string[] = []
+    const newErrors: string[] = [];
 
     if (!formData.title.trim()) {
-      newErrors.push('Judul proyek harus diisi')
+      newErrors.push("Judul proyek harus diisi");
     }
 
     if (!formData.description.trim()) {
-      newErrors.push('Deskripsi proyek harus diisi')
+      newErrors.push("Deskripsi proyek harus diisi");
     }
 
     if (!formData.category) {
-      newErrors.push('Kategori harus dipilih')
+      newErrors.push("Kategori harus dipilih");
     }
 
-    if (formData.budgetType === 'FIXED' && !formData.budget) {
-      newErrors.push('Budget harus diisi untuk proyek fixed price')
+    if (formData.budgetType === "FIXED" && !formData.budget) {
+      newErrors.push("Budget harus diisi untuk proyek fixed price");
     }
 
-    if (formData.budgetType === 'HOURLY' && !formData.hourlyRate) {
-      newErrors.push('Tarif per jam harus diisi untuk proyek hourly')
+    if (formData.budgetType === "HOURLY" && !formData.hourlyRate) {
+      newErrors.push("Tarif per jam harus diisi untuk proyek hourly");
     }
 
     if (!formData.deadline) {
-      newErrors.push('Deadline harus ditentukan')
+      newErrors.push("Deadline harus ditentukan");
     }
 
-    const deadline = new Date(formData.deadline)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const deadline = new Date(formData.deadline);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     if (deadline <= today) {
-      newErrors.push('Deadline harus di masa depan')
+      newErrors.push("Deadline harus di masa depan");
     }
 
-    setErrors(newErrors)
-    return newErrors.length === 0
-  }
+    setErrors(newErrors);
+    return newErrors.length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setIsLoading(true)
-    setErrors([])
+    setIsLoading(true);
+    setErrors([]);
 
     try {
       // Simulasi API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      setSuccess(true)
+      setSuccess(true);
       setTimeout(() => {
-        router.push('/dashboard/klien/projects')
-      }, 2000)
-
+        router.push("/dashboard/klien/projects");
+      }, 2000);
     } catch (error) {
-      setErrors(['Terjadi kesalahan saat menyimpan proyek. Silakan coba lagi.'])
+      setErrors([
+        "Terjadi kesalahan saat menyimpan proyek. Silakan coba lagi.",
+      ]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const saveDraft = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       // Simulasi save draft
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      alert('Draft berhasil disimpan!')
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      alert("Draft berhasil disimpan!");
     } catch (error) {
-      alert('Gagal menyimpan draft')
+      alert("Gagal menyimpan draft");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (success) {
     return (
@@ -216,9 +257,12 @@ export default function NewProjectPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <CardTitle className="text-2xl">Proyek Berhasil Diposting!</CardTitle>
+            <CardTitle className="text-2xl">
+              Proyek Berhasil Diposting!
+            </CardTitle>
             <CardDescription>
-              Proyek Anda telah diposting dan siap menerima proposal dari seniman.
+              Proyek Anda telah diposting dan siap menerima proposal dari
+              seniman.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
@@ -228,28 +272,40 @@ export default function NewProjectPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <nav className="border-b bg-white shadow-sm">
+      <nav className="border-b bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* Kiri - Logo & Link balik */}
             <div className="flex items-center space-x-4">
-              <Link href="/dashboard/klien" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg"></div>
-                <span className="text-xl font-bold text-gray-900">ArtisanHub</span>
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-linear-to-r from-purple-600 to-pink-600 rounded-lg"></div>
+                <span className="text-xl font-bold text-gray-900">
+                  ArtisanHub
+                </span>
               </Link>
-              <Link href="/dashboard/klien/projects" className="flex items-center text-gray-600 hover:text-gray-900">
+
+              <Link
+                href="/dashboard/klien/projects"
+                className="flex items-center text-gray-600 hover:text-gray-900"
+              >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Kembali ke Proyek
               </Link>
             </div>
-            
+
+            {/* Kanan - Tombol */}
             <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={saveDraft} disabled={isLoading}>
+              <Button
+                variant="outline"
+                onClick={saveDraft}
+                disabled={isLoading}
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Simpan Draft
               </Button>
@@ -261,7 +317,9 @@ export default function NewProjectPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Posting Proyek Baru</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Posting Proyek Baru
+          </h1>
           <p className="text-gray-600">
             Buat proyek baru dan temukan seniman berbakat untuk mengerjakannya
           </p>
@@ -282,7 +340,11 @@ export default function NewProjectPage() {
         )}
 
         <form onSubmit={handleSubmit}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="space-y-6"
+          >
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basic">Informasi Dasar</TabsTrigger>
               <TabsTrigger value="budget">Budget & Timeline</TabsTrigger>
@@ -317,7 +379,12 @@ export default function NewProjectPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="category">Kategori *</Label>
-                    <Select value={formData.category} onValueChange={(value) => handleSelectChange('category', value)}>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) =>
+                        handleSelectChange("category", value)
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih kategori proyek" />
                       </SelectTrigger>
@@ -343,26 +410,35 @@ export default function NewProjectPage() {
                       required
                     />
                     <p className="text-sm text-gray-500">
-                      Minimal 50 karakter. Deskripsi yang detail akan menarik lebih banyak seniman yang berkualitas.
+                      Minimal 50 karakter. Deskripsi yang detail akan menarik
+                      lebih banyak seniman yang berkualitas.
                     </p>
                   </div>
 
                   <div className="space-y-2">
                     <Label>Tipe Perekrutan</Label>
-                    <Select value={formData.hiringType} onValueChange={(value) => handleSelectChange('hiringType', value)}>
+                    <Select
+                      value={formData.hiringType}
+                      onValueChange={(value) =>
+                        handleSelectChange("hiringType", value)
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="OPEN">Buka untuk Semua Seniman</SelectItem>
-                        <SelectItem value="DIRECT">Langsung ke Seniman Tertentu</SelectItem>
+                        <SelectItem value="OPEN">
+                          Buka untuk Semua Seniman
+                        </SelectItem>
+                        <SelectItem value="DIRECT">
+                          Langsung ke Seniman Tertentu
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-gray-500">
-                      {formData.hiringType === 'OPEN' 
-                        ? 'Semua seniman dapat melihat dan mengirim proposal'
-                        : 'Hanya seniman yang Anda undang yang dapat melihat proyek'
-                      }
+                      {formData.hiringType === "OPEN"
+                        ? "Semua seniman dapat melihat dan mengirim proposal"
+                        : "Hanya seniman yang Anda undang yang dapat melihat proyek"}
                     </p>
                   </div>
                 </CardContent>
@@ -384,7 +460,12 @@ export default function NewProjectPage() {
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
                     <Label>Tipe Budget *</Label>
-                    <Select value={formData.budgetType} onValueChange={(value) => handleSelectChange('budgetType', value)}>
+                    <Select
+                      value={formData.budgetType}
+                      onValueChange={(value) =>
+                        handleSelectChange("budgetType", value)
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -395,7 +476,7 @@ export default function NewProjectPage() {
                     </Select>
                   </div>
 
-                  {formData.budgetType === 'FIXED' ? (
+                  {formData.budgetType === "FIXED" ? (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="budget">Budget Proyek (Rp) *</Label>
@@ -415,7 +496,9 @@ export default function NewProjectPage() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="budgetMin">Budget Minimal (Opsional)</Label>
+                          <Label htmlFor="budgetMin">
+                            Budget Minimal (Opsional)
+                          </Label>
                           <Input
                             id="budgetMin"
                             name="budgetMin"
@@ -426,7 +509,9 @@ export default function NewProjectPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="budgetMax">Budget Maksimal (Opsional)</Label>
+                          <Label htmlFor="budgetMax">
+                            Budget Maksimal (Opsional)
+                          </Label>
                           <Input
                             id="budgetMax"
                             name="budgetMax"
@@ -471,7 +556,9 @@ export default function NewProjectPage() {
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="startDate">Tanggal Mulai (Opsional)</Label>
+                      <Label htmlFor="startDate">
+                        Tanggal Mulai (Opsional)
+                      </Label>
                       <Input
                         id="startDate"
                         name="startDate"
@@ -494,7 +581,9 @@ export default function NewProjectPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="estimatedDuration">Estimasi Durasi (Hari)</Label>
+                    <Label htmlFor="estimatedDuration">
+                      Estimasi Durasi (Hari)
+                    </Label>
                     <Input
                       id="estimatedDuration"
                       name="estimatedDuration"
@@ -532,26 +621,38 @@ export default function NewProjectPage() {
                           <SelectValue placeholder="Cari atau pilih keahlian" />
                         </SelectTrigger>
                         <SelectContent>
-                          {skills.filter(skill => !formData.requiredSkills.includes(skill)).map((skill) => (
-                            <SelectItem key={skill} value={skill}>
-                              {skill}
-                            </SelectItem>
-                          ))}
+                          {skills
+                            .filter(
+                              (skill) =>
+                                !formData.requiredSkills.includes(skill)
+                            )
+                            .map((skill) => (
+                              <SelectItem key={skill} value={skill}>
+                                {skill}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         onClick={() => addSkill(skillInput)}
-                        disabled={!skillInput || formData.requiredSkills.includes(skillInput)}
+                        disabled={
+                          !skillInput ||
+                          formData.requiredSkills.includes(skillInput)
+                        }
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                    
+
                     {formData.requiredSkills.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {formData.requiredSkills.map((skill) => (
-                          <Badge key={skill} variant="secondary" className="flex items-center gap-1">
+                          <Badge
+                            key={skill}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
                             {skill}
                             <button
                               type="button"
@@ -567,7 +668,9 @@ export default function NewProjectPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="clientNotes">Catatan Tambahan untuk Seniman</Label>
+                    <Label htmlFor="clientNotes">
+                      Catatan Tambahan untuk Seniman
+                    </Label>
                     <Textarea
                       id="clientNotes"
                       name="clientNotes"
@@ -609,10 +712,12 @@ export default function NewProjectPage() {
                       className="hidden"
                       id="file-upload"
                     />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => document.getElementById('file-upload')?.click()}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        document.getElementById("file-upload")?.click()
+                      }
                     >
                       Pilih File
                     </Button>
@@ -622,7 +727,10 @@ export default function NewProjectPage() {
                     <div className="space-y-2">
                       <Label>File yang Diupload</Label>
                       {formData.attachments.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
                           <div className="flex items-center gap-3">
                             <FileText className="h-4 w-4 text-gray-400" />
                             <span className="text-sm">{file.name}</span>
@@ -663,36 +771,70 @@ export default function NewProjectPage() {
                     <div>
                       <h3 className="font-semibold mb-3">Informasi Dasar</h3>
                       <div className="space-y-2 text-sm">
-                        <div><span className="font-medium">Judul:</span> {formData.title || '-'}</div>
-                        <div><span className="font-medium">Kategori:</span> {formData.category || '-'}</div>
-                        <div><span className="font-medium">Deskripsi:</span> {formData.description || '-'}</div>
-                        <div><span className="font-medium">Tipe Perekrutan:</span> {formData.hiringType === 'OPEN' ? 'Buka untuk Semua' : 'Langsung'}</div>
+                        <div>
+                          <span className="font-medium">Judul:</span>{" "}
+                          {formData.title || "-"}
+                        </div>
+                        <div>
+                          <span className="font-medium">Kategori:</span>{" "}
+                          {formData.category || "-"}
+                        </div>
+                        <div>
+                          <span className="font-medium">Deskripsi:</span>{" "}
+                          {formData.description || "-"}
+                        </div>
+                        <div>
+                          <span className="font-medium">Tipe Perekrutan:</span>{" "}
+                          {formData.hiringType === "OPEN"
+                            ? "Buka untuk Semua"
+                            : "Langsung"}
+                        </div>
                       </div>
                     </div>
 
                     <div>
                       <h3 className="font-semibold mb-3">Budget & Timeline</h3>
                       <div className="space-y-2 text-sm">
-                        <div><span className="font-medium">Tipe Budget:</span> {formData.budgetType === 'FIXED' ? 'Harga Fix' : 'Per Jam'}</div>
                         <div>
-                          <span className="font-medium">Budget:</span> 
-                          {formData.budgetType === 'FIXED' 
-                            ? ` Rp ${parseInt(formData.budget || '0').toLocaleString('id-ID')}`
-                            : ` Rp ${parseInt(formData.hourlyRate || '0').toLocaleString('id-ID')}/jam`
-                          }
+                          <span className="font-medium">Tipe Budget:</span>{" "}
+                          {formData.budgetType === "FIXED"
+                            ? "Harga Fix"
+                            : "Per Jam"}
                         </div>
-                        <div><span className="font-medium">Deadline:</span> {formData.deadline || '-'}</div>
-                        <div><span className="font-medium">Durasi:</span> {formData.estimatedDuration ? `${formData.estimatedDuration} hari` : '-'}</div>
+                        <div>
+                          <span className="font-medium">Budget:</span>
+                          {formData.budgetType === "FIXED"
+                            ? ` Rp ${parseInt(
+                                formData.budget || "0"
+                              ).toLocaleString("id-ID")}`
+                            : ` Rp ${parseInt(
+                                formData.hourlyRate || "0"
+                              ).toLocaleString("id-ID")}/jam`}
+                        </div>
+                        <div>
+                          <span className="font-medium">Deadline:</span>{" "}
+                          {formData.deadline || "-"}
+                        </div>
+                        <div>
+                          <span className="font-medium">Durasi:</span>{" "}
+                          {formData.estimatedDuration
+                            ? `${formData.estimatedDuration} hari`
+                            : "-"}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {formData.requiredSkills.length > 0 && (
                     <div>
-                      <h3 className="font-semibold mb-3">Keahlian yang Dibutuhkan</h3>
+                      <h3 className="font-semibold mb-3">
+                        Keahlian yang Dibutuhkan
+                      </h3>
                       <div className="flex flex-wrap gap-2">
                         {formData.requiredSkills.map((skill) => (
-                          <Badge key={skill} variant="outline">{skill}</Badge>
+                          <Badge key={skill} variant="outline">
+                            {skill}
+                          </Badge>
                         ))}
                       </div>
                     </div>
@@ -714,7 +856,10 @@ export default function NewProjectPage() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Pastikan semua informasi sudah benar. Proyek yang sudah diposting dapat diedited namun perubahan signifikan memerlukan persetujuan ulang dari seniman yang sudah mengirim proposal.
+                      Pastikan semua informasi sudah benar. Proyek yang sudah
+                      diposting dapat diedited namun perubahan signifikan
+                      memerlukan persetujuan ulang dari seniman yang sudah
+                      mengirim proposal.
                     </AlertDescription>
                   </Alert>
                 </CardContent>
@@ -725,39 +870,57 @@ export default function NewProjectPage() {
           {/* Action Buttons */}
           <div className="flex justify-between items-center pt-6 border-t">
             <div className="flex items-center space-x-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setActiveTab(activeTab === 'basic' ? 'basic' : 
-                  activeTab === 'budget' ? 'basic' : 
-                  activeTab === 'requirements' ? 'budget' : 'requirements'
-                )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setActiveTab(
+                    activeTab === "basic"
+                      ? "basic"
+                      : activeTab === "budget"
+                      ? "basic"
+                      : activeTab === "requirements"
+                      ? "budget"
+                      : "requirements"
+                  )
+                }
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Sebelumnya
               </Button>
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 variant="outline"
-                onClick={() => setActiveTab(activeTab === 'basic' ? 'budget' : 
-                  activeTab === 'budget' ? 'requirements' : 
-                  activeTab === 'requirements' ? 'review' : 'review'
-                )}
-                disabled={activeTab === 'review'}
+                onClick={() =>
+                  setActiveTab(
+                    activeTab === "basic"
+                      ? "budget"
+                      : activeTab === "budget"
+                      ? "requirements"
+                      : activeTab === "requirements"
+                      ? "review"
+                      : "review"
+                  )
+                }
+                disabled={activeTab === "review"}
               >
                 Selanjutnya
                 <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
               </Button>
             </div>
 
-            {activeTab === 'review' && (
-              <Button type="submit" disabled={isLoading} className="bg-purple-600 hover:bg-purple-700">
-                {isLoading ? 'Memposting...' : 'Posting Proyek'}
+            {activeTab === "review" && (
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {isLoading ? "Memposting..." : "Posting Proyek"}
               </Button>
             )}
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
