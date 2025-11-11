@@ -1,67 +1,125 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth"; // Note: auth is imported but not used
 import { db } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
 
-  // Basic validation for the ID
-  if (!id) {
-    return NextResponse.json(
-      { error: "An ID must be provided" },
-      { status: 400 }
-    );
-  }
-
   try {
-    const senimanProfileData = await db.portfolioItem.findMany({
-      where: {
-        id: id,
-      },
-      include: {
-        seniman: {
-          include: {
-            portfolio_items: {
-              select: {
-                id: true,
-                category: true,
-                image_urls: true,
-                title: true,
-                description: true,
-              },
+    // ✅ Kalau ada id → ambil satu item saja (bukan array)
+    if (id) {
+      const item = await db.portfolioItem.findFirst({
+        where: { id: id },
+        include: {
+          seniman: {
+            include: {
+              user: true,
             },
           },
+        },
+      });
+
+      if (!item) {
+        return NextResponse.json(
+          { error: "Portofolio tidak ditemukan" },
+          { status: 404 }
+        );
+      }
+
+      let imageUrl = "/placeholder.jpg";
+      try {
+        const parsed = JSON.parse(item.image_urls as string);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          imageUrl = parsed[0];
+        } else if (typeof item.image_urls === "string") {
+          imageUrl = item.image_urls;
+        }
+      } catch {
+        if (typeof item.image_urls === "string") {
+          imageUrl = item.image_urls;
+        }
+      }
+
+      const senimanUser = item.seniman?.user;
+      const seniman_name = senimanUser
+        ? `${senimanUser.first_name} ${senimanUser.last_name}`.trim()
+        : "Seniman tidak diketahui";
+
+      const formattedItem = {
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+        tools_used: item.tools_used,
+        client_name: item.client_name,
+        created_at: item.created_at,
+        video_url: item.video_url,
+        image_urls: imageUrl,
+        seniman_id: item.seniman_id,
+        seniman_name,
+      };
+
+      return NextResponse.json(
+        { message: "Data portofolio berhasil diambil", data: formattedItem },
+        { status: 200 }
+      );
+    }
+
+    // 🔹 Kalau tidak ada id → ambil semua
+    const portfolioItems = await db.portfolioItem.findMany({
+      orderBy: { created_at: "desc" },
+      include: {
+        seniman: {
+          include: { user: true },
         },
       },
     });
 
-    if (!senimanProfileData) {
-      return NextResponse.json(
-        { error: "Seniman profile not found" },
-        { status: 404 }
-      );
-    }
+    const formattedItems = portfolioItems.map((item) => {
+      let imageUrl = "/placeholder.jpg";
+      try {
+        const parsed = JSON.parse(item.image_urls as string);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          imageUrl = parsed[0];
+        } else if (typeof item.image_urls === "string") {
+          imageUrl = item.image_urls;
+        }
+      } catch {
+        if (typeof item.image_urls === "string") {
+          imageUrl = item.image_urls;
+        }
+      }
+
+      const senimanUser = item.seniman?.user;
+      const seniman_name = senimanUser
+        ? `${senimanUser.first_name} ${senimanUser.last_name}`.trim()
+        : "Seniman tidak diketahui";
+
+      return {
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+        tools_used: item.tools_used,
+        client_name: item.client_name,
+        created_at: item.created_at,
+        video_url: item.video_url,
+        image_urls: imageUrl,
+        seniman_id: item.seniman_id,
+        seniman_name,
+      };
+    });
 
     return NextResponse.json(
       {
-        message: "Seniman profile data fetched successfully",
-        data: senimanProfileData,
+        message: "Berhasil mengambil semua data portofolio",
+        data: formattedItems,
       },
       { status: 200 }
     );
-  } catch (error) {
-    // --- THIS WAS THE BUG ---
-    // You cannot both 'throw' an error and 'return' a response.
-    // Throwing an error here crashes the server-side function,
-    // which causes the client-side 'fetch' to fail.
-
-    // REMOVED: throw new Error("Failed to fetch seniman profile data");
-
-    // This is correct. Now, if the database query fails, this JSON
-    // response will be sent to the client.
-    console.error("Failed to fetch seniman profile data:", error); // Log the actual error for debugging
+  } catch (error: any) {
+    console.error("Gagal ambil data portofolio:", error);
     return NextResponse.json(
-      { error: "Failed to fetch seniman profile data" },
+      { error: error.message || "Terjadi kesalahan pada server" },
       { status: 500 }
     );
   }

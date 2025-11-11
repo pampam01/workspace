@@ -106,7 +106,7 @@ export default function BrowsePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 🟣 Navbar */}
+      {/* Navbar */}
       <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -120,7 +120,7 @@ export default function BrowsePage() {
         </div>
       </nav>
 
-      {/* 🟣 Hero */}
+      {/* Hero */}
       <section className="bg-linear-to-r from-purple-600 to-pink-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold mb-4">Temukan Karya Kreatif</h1>
