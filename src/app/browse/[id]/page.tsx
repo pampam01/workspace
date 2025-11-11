@@ -41,7 +41,7 @@ export default function SenimanProfilePage() {
           throw new Error("Failed to fetch seniman profile");
         }
         const data = await response.json();
-        setPortofolioItem(data.data[0]);
+        setPortofolioItem(data.data);
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching seniman profile:", error);
