@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -104,6 +104,8 @@ export default function SenimanDashboard() {
     client_name: "",
     is_featured: false,
   });
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectStatusFilter, setProjectStatusFilter] = useState("ALL");
 
   const fetchDashboardData = useCallback(
     async (retryCount = 0) => {
@@ -365,6 +367,12 @@ export default function SenimanDashboard() {
     switch (status) {
       case "IN_PROGRESS":
         return "bg-blue-100 text-blue-800";
+      case "POSTED":
+        return "bg-purple-100 text-purple-800";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800";
+      case "PROCESSING":
+        return "bg-blue-100 text-blue-800";
       case "NEGOTIATING":
         return "bg-yellow-100 text-yellow-800";
       case "COMPLETED":
@@ -378,6 +386,12 @@ export default function SenimanDashboard() {
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case "POSTED":
+        return "Diposting";
+      case "PENDING":
+        return "Menunggu";
+      case "PROCESSING":
+        return "Diproses";
       case "IN_PROGRESS":
         return "Sedang Berjalan";
       case "NEGOTIATING":
@@ -390,6 +404,19 @@ export default function SenimanDashboard() {
         return status;
     }
   };
+
+  const filteredProjects = useMemo(() => {
+    if (!data) return [] as DashboardData["recentProjects"];
+    return data.recentProjects.filter((project) => {
+      const matchesSearch = project.title
+        ?.toLowerCase()
+        .includes(projectSearch.toLowerCase());
+      const matchesStatus =
+        projectStatusFilter === "ALL" ||
+        project.status === projectStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [data, projectSearch, projectStatusFilter]);
 
   // Show loading if session is still loading or data is being fetched
   if (status === "loading" || isLoading || !data) {
@@ -579,12 +606,12 @@ export default function SenimanDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {data.recentProjects.length === 0 ? (
+                      {filteredProjects.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                           <p>Belum ada proyek</p>
                         </div>
                       ) : (
-                        data.recentProjects.map((project) => (
+                        filteredProjects.map((project) => (
                           <Link
                             key={project.id}
                             href={`/projects/${project.id}`}
@@ -716,14 +743,29 @@ export default function SenimanDashboard() {
           <TabsContent value="projects" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Manajemen Proyek</h2>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Search className="h-4 w-4 mr-2" />
-                  Cari
+              <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                <Input
+                  placeholder="Cari proyek"
+                  value={projectSearch}
+                  onChange={(e) => setProjectSearch(e.target.value)}
+                  className="w-full md:w-64"
+                />
+                <Select
+                  value={projectStatusFilter}
+                  onValueChange={setProjectStatusFilter}
+                >
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Semua</SelectItem>
+                    <SelectItem value="IN_PROGRESS">Berjalan</SelectItem>
+                    <SelectItem value="NEGOTIATING">Negosiasi</SelectItem>
+                    <SelectItem value="COMPLETED">Selesai</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={() => setProjectStatusFilter("ALL")}>
+                  <Filter className="h-4 w-4 mr-2" />Reset
                 </Button>
               </div>
             </div>
@@ -735,14 +777,14 @@ export default function SenimanDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {data.recentProjects.filter(
+                    {filteredProjects.filter(
                       (p) => p.status === "IN_PROGRESS"
                     ).length === 0 ? (
                       <div className="text-center py-4 text-gray-500 text-sm">
                         <p>Tidak ada proyek sedang berjalan</p>
                       </div>
                     ) : (
-                      data.recentProjects
+                      filteredProjects
                         .filter((p) => p.status === "IN_PROGRESS")
                         .map((project) => (
                           <Link
@@ -781,14 +823,14 @@ export default function SenimanDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {data.recentProjects.filter(
+                    {filteredProjects.filter(
                       (p) => p.status === "NEGOTIATING"
                     ).length === 0 ? (
                       <div className="text-center py-4 text-gray-500 text-sm">
                         <p>Tidak ada proyek dalam negosiasi</p>
                       </div>
                     ) : (
-                      data.recentProjects
+                      filteredProjects
                         .filter((p) => p.status === "NEGOTIATING")
                         .map((project) => (
                           <Link
@@ -819,13 +861,13 @@ export default function SenimanDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {data.recentProjects.filter((p) => p.status === "COMPLETED")
+                    {filteredProjects.filter((p) => p.status === "COMPLETED")
                       .length === 0 ? (
                       <div className="text-center py-4 text-gray-500 text-sm">
                         <p>Tidak ada proyek selesai</p>
                       </div>
                     ) : (
-                      data.recentProjects
+                      filteredProjects
                         .filter((p) => p.status === "COMPLETED")
                         .map((project) => (
                           <Link

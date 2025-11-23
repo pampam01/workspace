@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Briefcase,
   Star,
@@ -41,7 +52,16 @@ import {
   MoreHorizontal,
   User,
   Building,
+  Loader2,
 } from "lucide-react";
+
+declare global {
+  interface Window {
+    snap?: {
+      pay: (token: string, options?: Record<string, any>) => void;
+    };
+  }
+}
 
 // Mock data untuk dashboard klien
 const mockDashboardData = {
@@ -191,6 +211,15 @@ export default function KlienDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<typeof mockDashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [paymentProjectId, setPaymentProjectId] = useState<string>("");
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState("BANK_TRANSFER");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isSnapReady, setIsSnapReady] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -229,6 +258,191 @@ export default function KlienDashboard() {
     fetchDashboard();
   }, []);
 
+  useEffect(() => {
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+    const isProduction = process.env.NEXT_PUBLIC_MIDTRANS_PRODUCTION === "true";
+    if (!clientKey || typeof window === "undefined") return;
+
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      "script[src*='midtrans.com/snap/snap.js']"
+    );
+
+    if (existingScript) {
+      setIsSnapReady(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = isProduction
+      ? "https://app.midtrans.com/snap/snap.js"
+      : "https://app.sandbox.midtrans.com/snap/snap.js";
+    script.async = true;
+    script.dataset.clientKey = clientKey;
+    script.onload = () => setIsSnapReady(true);
+    script.onerror = () => toast.error("Gagal memuat Midtrans Snap");
+    document.body.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (data?.recentProjects?.length) {
+      setPaymentProjectId((prev) => prev || data.recentProjects[0].id);
+      setPaymentAmount((prev) =>
+        prev > 0 ? prev : data.recentProjects[0].budget
+      );
+    }
+  }, [data]);
+
+  const filteredProjects = useMemo(() => {
+    if (!data) return [] as typeof mockDashboardData.recentProjects;
+    return data.recentProjects.filter((project) => {
+      const matchesSearch = [project.title, project.category]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === "ALL" || project.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [data, searchQuery, statusFilter]);
+
+  const filteredArtisans = useMemo(() => {
+    if (!data) return [] as typeof mockDashboardData.savedArtisans;
+    return data.savedArtisans.filter((artisan) =>
+      [artisan.name, artisan.category]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+    );
+  }, [data, searchQuery]);
+
+  const handleMarkNotificationRead = async (notificationId: string) => {
+    try {
+      const response = await fetch("/api/notifications/mark-read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Gagal memperbarui notifikasi");
+      }
+
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              notifications: prev.notifications.map((notif) =>
+                notif.id === notificationId ? { ...notif, is_read: true } : notif
+              ),
+            }
+          : prev
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Tidak dapat memperbarui status notifikasi"
+      );
+    }
+  };
+
+  const handleDownloadTransactions = () => {
+    if (!data?.recentTransactions.length) {
+      toast.error("Tidak ada transaksi untuk diunduh");
+      return;
+    }
+
+    const headers = [
+      "ID",
+      "Proyek",
+      "Seniman",
+      "Jumlah",
+      "Status",
+      "Tanggal",
+    ];
+    const rows = data.recentTransactions.map((t) => [
+      t.id,
+      t.project_title,
+      t.seniman_name,
+      t.amount,
+      t.status,
+      new Date(t.date).toISOString(),
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((cell) =>
+            typeof cell === "string" && cell.includes(",")
+              ? `"${cell}"`
+              : cell
+          )
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transaksi-klien-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Laporan transaksi berhasil diunduh");
+  };
+
+  const handleCreatePayment = async () => {
+    if (!paymentProjectId || paymentAmount <= 0) {
+      toast.error("Pilih proyek dan masukkan nominal pembayaran");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const response = await fetch("/api/payments/midtrans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: paymentProjectId,
+          amount: paymentAmount,
+          paymentMethod,
+          description: "Pembayaran proyek melalui dashboard klien",
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "Gagal membuat transaksi");
+      }
+
+      const { token, redirect_url } = payload;
+
+      if (isSnapReady && window.snap?.pay) {
+        window.snap.pay(token, {
+          onSuccess: () => {
+            toast.success("Pembayaran berhasil diproses");
+            setIsPaymentDialogOpen(false);
+          },
+          onPending: () => toast.message("Transaksi menunggu konfirmasi"),
+          onError: () => toast.error("Transaksi gagal diproses"),
+          onClose: () => toast.info("Anda menutup jendela pembayaran"),
+        });
+      } else if (redirect_url) {
+        window.location.href = redirect_url;
+      } else {
+        throw new Error("Snap belum siap dan URL redirect tidak tersedia");
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat memproses pembayaran"
+      );
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "POSTED":
@@ -239,6 +453,10 @@ export default function KlienDashboard() {
         return "bg-yellow-100 text-yellow-800";
       case "COMPLETED":
         return "bg-gray-100 text-gray-800";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800";
+      case "PROCESSING":
+        return "bg-blue-100 text-blue-800";
       case "CANCELLED":
         return "bg-red-100 text-red-800";
       default:
@@ -256,6 +474,10 @@ export default function KlienDashboard() {
         return "Negosiasi";
       case "COMPLETED":
         return "Selesai";
+      case "PENDING":
+        return "Menunggu";
+      case "PROCESSING":
+        return "Diproses";
       case "CANCELLED":
         return "Dibatalkan";
       default:
@@ -289,7 +511,11 @@ export default function KlienDashboard() {
 
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <Button variant="ghost" size="sm">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push("/notifications")}
+                >
                   <Bell className="h-4 w-4" />
                   {data.notifications.filter((n) => !n.is_read).length > 0 && (
                     <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
@@ -313,7 +539,11 @@ export default function KlienDashboard() {
                 </div>
               </div>
 
-              <Button variant="ghost" size="sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/dashboard/klien/settings")}
+              >
                 <Settings className="h-4 w-4" />
               </Button>
 
@@ -431,6 +661,35 @@ export default function KlienDashboard() {
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Input
+              placeholder="Cari proyek atau seniman..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="md:w-2/4"
+            />
+            <div className="flex items-center gap-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Semua Status</SelectItem>
+                  <SelectItem value="POSTED">Diposting</SelectItem>
+                  <SelectItem value="NEGOTIATING">Negosiasi</SelectItem>
+                  <SelectItem value="IN_PROGRESS">Sedang Berjalan</SelectItem>
+                  <SelectItem value="COMPLETED">Selesai</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={() => setStatusFilter("ALL")}>
+                Reset
+              </Button>
+            </div>
+          </div>
+
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Recent Projects */}
@@ -448,7 +707,7 @@ export default function KlienDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {data.recentProjects.map((project) => (
+                      {filteredProjects.map((project) => (
                         <div
                           key={project.id}
                           className="flex items-center justify-between p-4 border rounded-lg"
@@ -537,6 +796,10 @@ export default function KlienDashboard() {
                               ? "bg-purple-50 border-purple-200"
                               : ""
                           }`}
+                          onClick={() =>
+                            !notification.is_read &&
+                            handleMarkNotificationRead(notification.id)
+                          }
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -610,7 +873,7 @@ export default function KlienDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {data.recentProjects
+                    {filteredProjects
                       .filter((p) => p.status === "POSTED")
                       .map((project) => (
                         <div key={project.id} className="p-3 border rounded-lg">
@@ -640,7 +903,7 @@ export default function KlienDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {data.recentProjects
+                    {filteredProjects
                       .filter((p) => p.status === "IN_PROGRESS")
                       .map((project) => (
                         <div key={project.id} className="p-3 border rounded-lg">
@@ -681,7 +944,7 @@ export default function KlienDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {data.recentProjects
+                    {filteredProjects
                       .filter((p) => p.status === "NEGOTIATING")
                       .map((project) => (
                         <div key={project.id} className="p-3 border rounded-lg">
@@ -730,7 +993,7 @@ export default function KlienDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {data.savedArtisans.map((artisan) => (
+              {filteredArtisans.map((artisan) => (
                 <Card key={artisan.id}>
                   <CardHeader>
                     <div className="flex items-center space-x-4">
@@ -778,7 +1041,12 @@ export default function KlienDashboard() {
                             Lihat Profil
                           </Button>
                         </Link>
-                        <Button size="sm">
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            router.push(`/messages?with=${artisan.id}`)
+                          }
+                        >
                           <MessageCircle className="h-4 w-4" />
                         </Button>
                       </div>
@@ -792,7 +1060,7 @@ export default function KlienDashboard() {
           <TabsContent value="transactions" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Riwayat Transaksi</h2>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleDownloadTransactions}>
                 <Download className="h-4 w-4 mr-2" />
                 Download Laporan
               </Button>
@@ -840,6 +1108,22 @@ export default function KlienDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Buat Pembayaran</CardTitle>
+                  <Button onClick={() => setIsPaymentDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Bayar Proyek
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-600">
+                Pilih proyek yang sedang berjalan dan lakukan pembayaran aman
+                melalui Midtrans Snap.
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
@@ -885,6 +1169,88 @@ export default function KlienDashboard() {
             </div>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Bayar Proyek</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Pilih Proyek</Label>
+                <Select
+                  value={paymentProjectId}
+                  onValueChange={(value) => {
+                    setPaymentProjectId(value);
+                    const selected = data?.recentProjects.find(
+                      (p) => p.id === value
+                    );
+                    if (selected) {
+                      setPaymentAmount(selected.budget);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Proyek yang akan dibayar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {data?.recentProjects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Nominal Pembayaran</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(Number(e.target.value) || 0)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Metode Pembayaran</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih metode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BANK_TRANSFER">Transfer Bank</SelectItem>
+                    <SelectItem value="CARD">Kartu Kredit/Debit</SelectItem>
+                    <SelectItem value="E_WALLET">E-Wallet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {!isSnapReady && (
+                <p className="text-sm text-amber-600">
+                  Script Midtrans belum siap, pembayaran akan dialihkan ke halaman
+                  Snap jika tersedia.
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsPaymentDialogOpen(false)}
+                disabled={isProcessingPayment}
+              >
+                Batal
+              </Button>
+              <Button onClick={handleCreatePayment} disabled={isProcessingPayment}>
+                {isProcessingPayment && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Proses Pembayaran
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
