@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -187,15 +189,44 @@ const mockDashboardData = {
 export default function KlienDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState(mockDashboardData);
+  const [data, setData] = useState<typeof mockDashboardData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulasi loading data
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    const fetchDashboard = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/dashboard/klien", {
+          cache: "no-store",
+        });
 
-    return () => clearTimeout(timer);
+        const responseData = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            responseData.error || "Gagal memuat data dashboard klien"
+          );
+        }
+
+        setData({
+          ...mockDashboardData,
+          ...responseData,
+        });
+        setError(null);
+      } catch (fetchError) {
+        const message =
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Gagal memuat data dashboard klien";
+        setError(message);
+        toast.error(message);
+        setData(mockDashboardData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboard();
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -232,7 +263,7 @@ export default function KlienDashboard() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !data) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -286,7 +317,11 @@ export default function KlienDashboard() {
                 <Settings className="h-4 w-4" />
               </Button>
 
-              <Button variant="ghost" size="sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => signOut({ callbackUrl: "/" })}
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -295,6 +330,11 @@ export default function KlienDashboard() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-800">
+            {error}
+          </div>
+        )}
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
